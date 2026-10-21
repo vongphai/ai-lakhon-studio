@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI ລະຄອນ Studio</title>
+<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head>
+<body>
+
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@500;700;800&family=Noto+Sans+Lao+Looped:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: header band → 8-step nav → form column + sticky prompt panel (stacks under 980px). Dark-first, gold accent. */
+:root{
+  --bg:#0c111d; --band:#121a2f; --surface:#131a2a; --surface-2:#0e1422;
+  --line:#25304a; --line-strong:#38455f;
+  --fg:#ece7da; --muted:#9aa2b6; --accent:#f0bd55;
+  --btn:#e9b04a; --btn-ink:#1b1305; --accent-soft:rgba(240,189,85,.13);
+  --ok:#62c99d;
+  --display:"Noto Sans Lao","Phetsarath OT","Saysettha OT",system-ui,sans-serif;
+  --body:"Noto Sans Lao Looped","Noto Sans Lao","Phetsarath OT","Saysettha OT",system-ui,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f5f2ea; --band:#ebe4d3; --surface:#fffdf8; --surface-2:#f6f2e8;
+    --line:#ddd4c1; --line-strong:#c7bba2;
+    --fg:#1d2230; --muted:#5b6172; --accent:#8c600b;
+    --btn:#e3a93c; --btn-ink:#1b1305; --accent-soft:rgba(176,122,18,.12);
+    --ok:#1f8a5c;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f5f2ea; --band:#ebe4d3; --surface:#fffdf8; --surface-2:#f6f2e8;
+  --line:#ddd4c1; --line-strong:#c7bba2;
+  --fg:#1d2230; --muted:#5b6172; --accent:#8c600b;
+  --btn:#e3a93c; --btn-ink:#1b1305; --accent-soft:rgba(176,122,18,.12);
+  --ok:#1f8a5c;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1160px;margin:0 auto}
+
+/* header */
+.band{background:var(--band);border-bottom:1px solid var(--line);
+  margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:36px 30px;text-align:center}
+.brand{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.brand svg{width:46px;height:46px;color:var(--accent);flex:none}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.25;margin:0;color:var(--accent);letter-spacing:.01em}
+h1 small{font-family:system-ui,sans-serif;font-weight:800;letter-spacing:.06em}
+.lede{max-width:62ch;margin:12px auto 0;color:var(--muted);font-size:15.5px;text-wrap:balance}
+
+/* step nav */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:26px 0 22px}
+.steps a{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface);color:var(--fg);text-decoration:none;font-size:14px;font-weight:600;text-align:center;line-height:1.35;transition:border-color .15s,background .15s}
+.steps a:hover{border-color:var(--accent);background:var(--accent-soft)}
+.steps a .n{font-family:system-ui,sans-serif;font-size:12px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+@media (max-width:640px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* layout */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
+.form{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 20px 22px;scroll-margin-top:16px}
+.card h2{display:flex;align-items:center;gap:10px;margin:0 0 16px;font-family:var(--display);font-weight:700;font-size:19px;color:var(--accent);line-height:1.4}
+.card h2 .num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--accent);font-family:system-ui,sans-serif;font-size:13px;font-weight:800;flex:none}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+@media (max-width:560px){.grid{grid-template-columns:minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0;border:0;padding:0;margin:0}
+.field.wide{grid-column:1/-1}
+.field>label,.field>legend{font-size:13.5px;font-weight:600;color:var(--muted);padding:0}
+.field>legend{margin-bottom:6px}
+input[type=text],textarea,select{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:9px;padding:9px 12px;line-height:1.55}
+textarea{resize:vertical;min-height:84px}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,.steps a:focus-visible,.chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.sel{position:relative}
+.sel select{appearance:none;-webkit-appearance:none;padding-right:36px;cursor:pointer;font-weight:600}
+.sel::after{content:"";position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.field.off{opacity:.5}
+.hint{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;cursor:pointer}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:6px 12px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface-2);font-size:14px;line-height:1.4;transition:border-color .15s,background .15s}
+.chip span::before{content:"";width:15px;height:15px;border-radius:4px;border:1.5px solid var(--muted);flex:none;background:transparent}
+.chip input:checked+span{border-color:var(--accent);background:var(--accent-soft)}
+.chip input:checked+span::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 2.5px var(--surface-2)}
+.chip input:disabled+span{opacity:.45;cursor:not-allowed}
+.calc{margin:14px 0 0;padding:10px 12px;border-radius:9px;background:var(--accent-soft);font-size:14px;font-variant-numeric:tabular-nums}
+.calc b{color:var(--accent)}
+
+.actions{display:flex;flex-wrap:wrap;gap:10px;padding-top:4px}
+.btn{font:inherit;font-weight:700;font-size:15px;min-height:46px;padding:9px 20px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);cursor:pointer;line-height:1.3}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.warn{border-color:var(--accent);color:var(--accent)}
+
+/* side panel */
+.side{position:sticky;top:16px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;max-height:calc(100vh - 32px);overflow:auto}
+@media (max-width:980px){.side{position:static;max-height:none}}
+.side h2{margin:0;font-family:var(--display);font-weight:700;font-size:19px;color:var(--accent);line-height:1.4}
+.side .note{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden;align-self:flex-start}
+.seg button{font:inherit;font-size:13.5px;font-weight:600;padding:6px 14px;background:transparent;color:var(--muted);border:0;cursor:pointer;min-height:36px}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font-size:13px;font-weight:600;color:var(--muted)}
+#output{width:100%;min-height:340px;height:44vh;font-family:var(--body);font-size:13.5px;line-height:1.65;background:var(--surface-2);border:1px solid var(--line-strong);border-radius:10px;padding:12px;color:var(--fg);resize:vertical;transition:box-shadow .3s}
+#output.flash{box-shadow:0 0 0 3px var(--accent)}
+.meta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-6px}
+.check h3{margin:4px 0 6px;font-family:var(--display);font-size:15px;font-weight:700}
+.check ol{margin:0;padding-left:22px;font-size:13.5px;color:var(--muted);line-height:1.75}
+.check li::marker{color:var(--accent);font-weight:700}
+
+footer{text-align:center;color:var(--muted);font-size:13px;padding-block:34px 28px;line-height:1.6}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="6" y="19" width="36" height="23" rx="3" fill="currentColor" opacity=".9"/>
+        <path d="M6 14.5 39.5 6l1.6 6.3L7.6 20.8z" fill="currentColor"/>
+        <path d="M13 12.7l5 6.1M22 10.4l5 6.1M31 8.1l5 6.1" style="stroke:var(--band)" stroke-width="3"/>
+        <path d="M6 27h36" style="stroke:var(--band)" stroke-width="2"/>
+      </svg>
+      <h1><small>AI</small> ລະຄອນ <small>STUDIO</small></h1>
+    </div>
+    <p class="lede">ເຄື່ອງມືສ້າງ prompt ລະຄອນ AI ຄົບ 8 ຂັ້ນຕອນ: ຄິດພລັອດ, ອອກແບບຕົວລະຄອນ, ຂຽນສາກ ແລະ ຄຳສັ່ງວິດີໂອ, ສ້າງພາບແຕ່ລະຊີນ, ໄປຈົນເຖິງຕັດຕໍ່ ແລະ ໂພສ.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav class="steps" id="steps" aria-label="8 ຂັ້ນຕອນ"></nav>
+  <div class="layout">
+    <form class="form" id="form" autocomplete="off">
+      <div id="sections"></div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="btnBuild">ສ້າງ Master Prompt</button>
+        <button type="button" class="btn" id="btnReset">ລ້າງຄ່າເລີ່ມໃໝ່</button>
+      </div>
+    </form>
+
+    <aside class="side" id="panel" aria-labelledby="panelTitle">
+      <h2 id="panelTitle">Master Prompt ພ້ອມຄັດລອກ</h2>
+      <p class="note">Prompt ອັບເດດເອງທຸກຄັ້ງທີ່ເຈົ້າປ່ຽນຕົວເລືອກ. ກົດຄັດລອກ ແລ້ວນຳໄປວາງໃນ AI ທີ່ເຈົ້າໃຊ້ ເຊັ່ນ ChatGPT, Gemini ຫຼື Claude. ເຄື່ອງມືນີ້ຂຽນຄຳສັ່ງໃຫ້ເທົ່ານັ້ນ, ບໍ່ໄດ້ສ້າງວິດີໂອ ຫຼື ໂພສແທນເຈົ້າ.</p>
+      <div class="row">
+        <span class="lbl" id="langLbl">ພາສາຂອງ Prompt</span>
+        <div class="seg" role="group" aria-labelledby="langLbl">
+          <button type="button" data-lang="lo" aria-pressed="true">ລາວ</button>
+          <button type="button" data-lang="en" aria-pressed="false">English</button>
+        </div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn primary" id="btnCopy">ຄັດລອກ Prompt</button>
+        <button type="button" class="btn" id="btnDl">ດາວໂຫຼດ .txt</button>
+      </div>
+      <textarea id="output" readonly aria-label="Master Prompt"></textarea>
+      <div class="meta" id="meta"></div>
+      <div class="check">
+        <h3>ສິ່ງທີ່ AI ຈະສົ່ງໃຫ້ເຈົ້າ</h3>
+        <ol>
+          <li>ພລັອດ ແລະ ບົດລະຄອນ</li>
+          <li>Character sheet ແລະ ການລັອກຕົວລະຄອນ</li>
+          <li>ແບ່ງສາກຕາມເວລາ</li>
+          <li>Video prompt ພ້ອມກ້ອງ ແລະ ສຽງ</li>
+          <li>Image prompt ແຕ່ລະຊີນ</li>
+          <li>ບົດເວົ້າ, ດົນຕີ ແລະ ສຽງປະກອບ</li>
+          <li>ຄູ່ມືຕັດຕໍ່ ແລະ ກວດຄວາມຕໍ່ເນື່ອງ</li>
+          <li>ຄຳບັນຍາຍໂພສ, hashtag ແລະ ໜ້າປົກ</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer>AI ລະຄອນ Studio · ເວີຊັນພາສາລາວ · ໃຊ້ໄດ້ທັງມືຖື ແລະ ຄອມພິວເຕີ<br>ການຕັ້ງຄ່າຂອງເຈົ້າຖືກບັນທຶກໄວ້ໃນບຣາວເຊີນີ້</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+// [ລາວ, English, ຄ່າຕົວເລກ(ຖ້າມີ)] — third item on checkbox options = checked by default
+var SECTIONS = [
+ {id:"plot", lo:"ຄິດພລັອດລະຄອນ", en:"Plot", fields:[
+  {t:"sel", id:"genre", lo:"ແນວລະຄອນ", en:"Genre", opts:[["ໂຣແມນຕິກ","Romance"],["ດຣາມ່າ","Drama"],["ຕະຫຼົກ","Comedy"],["ສະຫຍອງຂວັນ","Horror"],["ຜີ ແລະ ຄວາມເຊື່ອພື້ນບ້ານ","Folk ghost story / supernatural"],["ແອັກຊັນ","Action"],["ສືບສວນ ລຶກລັບ","Mystery / crime"],["ແຟນຕາຊີ","Fantasy"],["ອິງປະຫວັດສາດ","Historical"],["ຄອບຄົວ","Family"],["ນິທານພື້ນບ້ານລາວ","Lao folk tale"]]},
+  {t:"sel", id:"format", lo:"ຮູບແບບ", en:"Format", opts:[["ໜັງສັ້ນຕອນດຽວ","Single-episode short film"],["ຊີຣີສ໌ສັ້ນຫຼາຍຕອນ","Short multi-episode series"],["ລະຄອນແນວຕັ້ງ (micro-drama)","Vertical micro-drama"],["ມິວສິກວິດີໂອເລົ່າເລື່ອງ","Story-driven music video"],["ໂຄສະນາເລົ່າເລື່ອງ","Story-driven commercial"]]},
+  {t:"txt", id:"title", lo:"ຊື່ເລື່ອງ", en:"Title", ph:"ປ່ອຍວ່າງໄວ້ໃຫ້ AI ຕັ້ງຊື່", empty:["ໃຫ້ AI ຕັ້ງຊື່ທີ່ໜ້າສົນໃຈ","Let the AI choose a catchy title"]},
+  {t:"area", id:"idea", lo:"ພລັອດ / ໄອເດຍເລີ່ມຕົ້ນ", en:"Plot / starting idea", ph:"ພິມໄອເດຍ ຫຼື ປ່ອຍວ່າງໃຫ້ AI ຄິດໃໝ່", empty:["ໃຫ້ AI ຄິດພລັອດໃໝ່ທີ່ສ້າງສັນ ແລະ ບໍ່ຊ້ຳໃຜ","Let the AI create an original, fresh plot"]},
+  {t:"sel", id:"eps", lo:"ຈຳນວນຕອນ", en:"Episodes", opts:[["1 ຕອນ","1 episode",1],["2 ຕອນ","2 episodes",2],["3 ຕອນ","3 episodes",3],["5 ຕອນ","5 episodes",5],["10 ຕອນ","10 episodes",10],["20 ຕອນ","20 episodes",20]]},
+  {t:"sel", id:"ending", lo:"ຮູບແບບຕອນຈົບ", en:"Ending", opts:[["ຫັກມຸມເໜືອຄວາມຄາດໝາຍ","Unexpected twist"],["ຈົບແບບມີຄວາມສຸກ","Happy ending"],["ຈົບແບບເສົ້າ ຊຶ້ງໃຈ","Bittersweet / sad ending"],["ຈົບແບບປາຍເປີດ","Open ending"],["ຄ້າງໄວ້ໃຫ້ຕິດຕາມຕອນຕໍ່ໄປ","Cliffhanger"]]},
+  {t:"sel", id:"audience", lo:"ກຸ່ມຜູ້ຊົມ", en:"Audience", opts:[["ຜູ້ຊົມທົ່ວໄປ","General audience"],["ໄວລຸ້ນ","Teenagers"],["ໄວໜຸ່ມ ແລະ ຄົນເຮັດວຽກ","Young adults"],["ຄອບຄົວ","Families"],["ເດັກນ້ອຍ","Children"]]},
+  {t:"sel", id:"rating", lo:"ລະດັບເນື້ອຫາ", en:"Content rating", opts:[["ເໝາະກັບທຸກໄວ","Suitable for all ages"],["13 ປີຂຶ້ນໄປ","13+"],["18 ປີຂຶ້ນໄປ (ບໍ່ມີເນື້ອຫາໂຈ່ງແຈ້ງ)","18+ mature themes, nothing explicit"]]}
+ ]},
+ {id:"cast", lo:"ສ້າງຕົວລະຄອນ", en:"Characters", fields:[
+  {t:"sel", id:"chars", lo:"ຈຳນວນຕົວລະຄອນຫຼັກ", en:"Main characters", d:4, opts:[["1 ຄົນ","1 character",1],["2 ຄົນ","2 characters",2],["3 ຄົນ","3 characters",3],["4 ຄົນ","4 characters",4],["5 ຄົນ","5 characters",5],["6 ຄົນ","6 characters",6]]},
+  {t:"sel", id:"source", lo:"ທີ່ມາຂອງຕົວລະຄອນ", en:"Character source", opts:[["ໃຫ້ AI ອອກແບບທັງໝົດ","AI designs every character"],["ຂ້ອຍກຳນົດເອງບາງສ່ວນ (ຕາມຊ່ອງລຸ່ມນີ້)","I specify some details (see below)"],["ອີງຈາກຮູບອ້າງອີງທີ່ຂ້ອຍຈະອັບໂຫຼດ","Based on reference photos I will upload"]]},
+  {t:"sel", id:"style", lo:"ສະໄຕລ໌ພາບ", en:"Visual style", opts:[["Live Action ສົມຈິງ","Photorealistic live action"],["ອະນິເມຊັນ 3D","3D animation (Pixar-like)"],["ອະນິເມະ ຍີ່ປຸ່ນ","Japanese anime"],["ກາຕູນ 2D","2D cartoon"],["ພາບຟິມເກົ່າ (vintage)","Vintage film look"]]},
+  {t:"area", id:"look", lo:"ຮູບລັກສະນະ / ເສື້ອຜ້າ / ຍຸກ", en:"Look / costume / era", ph:"ເຊັ່ນ ລາວບູຮານ, ນຸ່ງສິ້ນໄໝ, ເຄື່ອງປະດັບເງິນ"},
+  {t:"sel", id:"lock", lo:"ລະບົບລັອກຕົວລະຄອນ", en:"Character lock", opts:[["ລັອກເຂັ້ມງວດທຸກສາກ (ແນະນຳ)","Strict lock in every scene (recommended)"],["ລັອກສະເພາະໃບໜ້າ","Lock face only"],["ບໍ່ລັອກ","No lock"]]},
+  {t:"sel", id:"continuity", lo:"ຄວາມຕໍ່ເນື່ອງ", en:"Continuity", opts:[["ຕໍ່ເນື່ອງທຸກສາກ ແລະ ທຸກຕອນ","Consistent across all scenes and episodes"],["ຕໍ່ເນື່ອງສະເພາະພາຍໃນຕອນ","Consistent within each episode only"]]},
+  {t:"chk", id:"keep", lo:"ລາຍລະອຽດທີ່ຕ້ອງຄືເດີມ", en:"Details that must stay the same", opts:[["ໃບໜ້າ","face",1],["ຊົງຜົມ","hairstyle",1],["ສີຜິວ","skin tone",1],["ຮູບຮ່າງ","body shape",1],["ເສື້ອຜ້າ / ເຄື່ອງປະດັບ","clothing & accessories",1],["ສຽງປະຈຳຕົວ","signature voice",1],["ອາຍຸ / ສັດສ່ວນ","age & proportions",1]]}
+ ]},
+ {id:"scene", lo:"ຂຽນຄຳສັ່ງສ້າງສາກ", en:"Scenes", fields:[
+  {t:"sel", id:"total", lo:"ຄວາມຍາວຕໍ່ຕອນ", en:"Length per episode", d:3, opts:[["30 ວິນາທີ","30 seconds",30],["1 ນາທີ","1 minute",60],["2 ນາທີ","2 minutes",120],["3 ນາທີ","3 minutes",180],["5 ນາທີ","5 minutes",300],["10 ນາທີ","10 minutes",600]]},
+  {t:"sel", id:"clip", lo:"ຄວາມຍາວຕໍ່ຄລິບ", en:"Length per clip", d:2, opts:[["5 ວິນາທີ","5 seconds",5],["8 ວິນາທີ","8 seconds",8],["10 ວິນາທີ","10 seconds",10],["15 ວິນາທີ","15 seconds",15]]},
+  {t:"sel", id:"ratio", lo:"ອັດຕາສ່ວນພາບ", en:"Aspect ratio", opts:[["9:16 ແນວຕັ້ງ","9:16 vertical"],["16:9 ແນວນອນ","16:9 horizontal"],["1:1 ຈະຕຸລັດ","1:1 square"],["4:5 ແນວຕັ້ງ (ຟີດ)","4:5 portrait (feed)"]]},
+  {t:"sel", id:"res", lo:"ຄວາມລະອຽດ", en:"Resolution", d:1, opts:[["720p","720p"],["1080p (ແນະນຳ)","1080p"],["4K (ບາງເຄື່ອງມືບໍ່ຮອງຮັບ)","4K (if the tool supports it)"]]},
+  {t:"txt", id:"place", lo:"ສະຖານທີ່ຫຼັກ", en:"Main location", ph:"ເຊັ່ນ ເຮືອນໄມ້ລາວແຄມນ້ຳຂອງ / ເມືອງອະນາຄົດ", empty:["ໃຫ້ AI ເລືອກໃຫ້ເໝາະກັບເລື່ອງ","Let the AI choose what fits the story"]},
+  {t:"sel", id:"time", lo:"ຊ່ວງເວລາ", en:"Time of day", opts:[["ກາງເວັນ","Daytime"],["ຕອນເຊົ້າ","Morning"],["ຕອນແລງ (ແສງທອງ)","Golden hour evening"],["ກາງຄືນ","Night"],["ຫຼາຍຊ່ວງຕາມເລື່ອງ","Varies with the story"]]},
+  {t:"sel", id:"mood", lo:"ບັນຍາກາດ", en:"Mood", opts:[["ອົບອຸ່ນ ໂຣແມນຕິກ","Warm and romantic"],["ເສົ້າ ຊຶ້ງ","Sad and moving"],["ຕື່ນເຕັ້ນ ລຸ້ນລະທຶກ","Tense and thrilling"],["ລຶກລັບ ໜ້າຢ້ານ","Mysterious and eerie"],["ສົດໃສ ມ່ວນຊື່ນ","Bright and cheerful"]]},
+  {t:"sel", id:"weather", lo:"ສະພາບອາກາດ / ເອັບເຟັກ", en:"Weather / atmosphere", opts:[["ປົກກະຕິ ທຳມະຊາດ","Normal, natural"],["ຝົນຕົກ","Rain"],["ໝອກ","Fog"],["ລົມແຮງ ໃບໄມ້ປິວ","Strong wind, blowing leaves"],["ພາຍຸ ຟ້າຜ່າ","Storm with lightning"]]},
+  {t:"area", id:"sceneExtra", lo:"ຂໍ້ກຳນົດສາກເພີ່ມເຕີມ", en:"Extra scene notes", wide:1, ph:"ເຊັ່ນ ເປີດເລື່ອງດ້ວຍພາບທີ່ດຶງດູດ, ພາບຕໍ່ເນື່ອງ, ບໍ່ກະໂດດສະຖານທີ່ໂດຍບໍ່ມີເຫດຜົນ"}
+ ]},
+ {id:"video", lo:"ຂຽນຄຳສັ່ງວິດີໂອ", en:"Video", fields:[
+  {t:"sel", id:"vplat", lo:"ແພລດຟອມສ້າງວິດີໂອ", en:"Video generator", opts:[["Meta AI","Meta AI"],["Google Veo","Google Veo"],["OpenAI Sora","OpenAI Sora"],["Kling AI","Kling AI"],["Runway","Runway"],["Hailuo AI","Hailuo AI"],["ອື່ນໆ","Other"]]},
+  {t:"sel", id:"camera", lo:"ການເຄື່ອນກ້ອງ", en:"Camera movement", opts:[["ແບບພາບຍົນ ເຄື່ອນກ້ອງຫຼາກຫຼາຍ","Cinematic, varied camera moves"],["ກ້ອງນິ່ງ","Static camera"],["ຖືກ້ອງ (handheld)","Handheld"],["ຊູມເຂົ້າຊ້າໆ","Slow push-in"],["ມຸມສູງ (drone)","Aerial drone shots"]]},
+  {t:"sel", id:"fps", lo:"ເຟຣມເຣດ", en:"Frame rate", opts:[["24 fps ແບບພາບຍົນ","24 fps cinematic"],["30 fps","30 fps"],["60 fps ລື່ນໄຫຼ","60 fps smooth"]]},
+  {t:"sel", id:"fx", lo:"ລະດັບເອັບເຟັກ", en:"Effects level", opts:[["ເປັນທຳມະຊາດ","Natural, minimal"],["ປານກາງ","Moderate"],["ອະລັງການ","Heavy VFX"]]},
+  {t:"sel", id:"light", lo:"ແສງ", en:"Lighting", opts:[["ແສງທຳມະຊາດ","Natural light"],["ແສງພາບຍົນ ຄອນທຣາສສູງ","Cinematic high-contrast"],["ແສງນຸ່ມ ອົບອຸ່ນ","Soft warm light"],["ແສງນີອອນ","Neon light"]]},
+  {t:"sel", id:"tone", lo:"ໂທນສີ", en:"Color grade", opts:[["ສີທຳມະຊາດ","Natural colors"],["ໂທນອຸ່ນ","Warm tones"],["ໂທນເຢັນ","Cool tones"],["Teal & Orange","Teal & orange"],["ຂາວດຳ","Black and white"]]},
+  {t:"chk", id:"vrules", lo:"ຂໍ້ກຳນົດວິດີໂອ", en:"Video requirements", opts:[["ບໍ່ມີຕົວໜັງສືໃນພາບ","no on-screen text",1],["ບໍ່ມີຊັບໄຕເຕີ້ນ","no subtitles",1],["ພາບສົມຈິງ ລາຍລະອຽດສູງ","realistic, high detail",1],["ປ້ອງກັນພາບກະພິບ / ຕົວລະຄອນບິດເບືອນ","no flicker or character distortion",1],["ການສະແດງກົງກັບເຫດການ","acting matches the events",1]]}
+ ]},
+ {id:"image", lo:"ພາບແຕ່ລະຊີນ", en:"Scene images", fields:[
+  {t:"sel", id:"itool", lo:"ເຄື່ອງມືສ້າງພາບ", en:"Image tool", opts:[["ChatGPT / ImageGen","ChatGPT / ImageGen"],["Google Gemini","Google Gemini"],["Midjourney","Midjourney"],["Meta AI","Meta AI"],["Leonardo AI","Leonardo AI"]]},
+  {t:"sel", id:"iref", lo:"ການໃຊ້ພາບອ້າງອີງ", en:"Reference images", opts:[["ພາບນິ່ງກ່ອນເລີ່ມວິດີໂອທຸກຊີນ","A still keyframe before every video clip"],["ສະເພາະຊີນສຳຄັນ","Only for key scenes"],["ບໍ່ໃຊ້ (ສ້າງວິດີໂອຈາກຂໍ້ຄວາມໂດຍກົງ)","None (text-to-video only)"]]},
+  {t:"sel", id:"shots", lo:"ຂະໜາດພາບ / ໄລຍະກ້ອງ", en:"Shot sizes", opts:[["ປະສົມ wide, medium, close-up","Mix of wide, medium and close-up"],["ເນັ້ນ close-up ອາລົມ","Mostly emotional close-ups"],["ເນັ້ນ wide ເຫັນສະຖານທີ່","Mostly wide establishing shots"]]},
+  {t:"sel", id:"iconsist", lo:"ຄວາມສະໝ່ຳສະເໝີຂອງພາບ", en:"Image consistency", opts:[["ອ້າງອີງ character sheet ທຸກຊີນ","Reference the character sheet in every scene"],["ອ້າງອີງພາບຊີນກ່ອນໜ້າ","Reference the previous scene image"]]},
+  {t:"area", id:"neg", lo:"ສິ່ງທີ່ບໍ່ຕ້ອງການໃຫ້ປາກົດ (Negative Prompt)", en:"Negative prompt", wide:1,
+   d:["ໃບໜ້າປ່ຽນ, ຕົວລະຄອນຊ້ຳກັນເກີນຈຳເປັນ, ມືຜິດຮູບ, ນິ້ວເກີນ, ແຂນຂາບິດເບືອນ, ເສື້ອຜ້າປ່ຽນໂດຍບໍ່ມີເຫດຜົນ, ພາບກະພິບ, ວັດຖຸລອຍ, ພາບແຕກ, ໂລໂກ້, ລາຍນ້ຳ, ຕົວໜັງສືມົ່ວ",
+      "changing faces, duplicated characters, malformed hands, extra fingers, distorted limbs, unexplained costume changes, flicker, floating objects, artifacts, logos, watermarks, garbled text"]}
+ ]},
+ {id:"audio", lo:"ສຽງ ແລະ ບົດເວົ້າ", en:"Voice & audio", fields:[
+  {t:"sel", id:"vstyle", lo:"ຮູບແບບສຽງ", en:"Voice format", opts:[["ບົດເວົ້າຕົວລະຄອນເທົ່ານັ້ນ","Character dialogue only"],["ບົດເວົ້າ + ຜູ້ບັນຍາຍ","Dialogue plus narrator"],["ຜູ້ບັນຍາຍເທົ່ານັ້ນ","Narrator only"],["ບໍ່ມີສຽງເວົ້າ (ດົນຕີ ແລະ ສຽງປະກອບ)","No speech (music and SFX only)"]]},
+  {t:"sel", id:"vlang", lo:"ພາສາສຽງ", en:"Spoken language", opts:[["ພາສາລາວ","Lao"],["ພາສາໄທ","Thai"],["ພາສາອັງກິດ","English"],["ພາສາຫວຽດ","Vietnamese"],["ພາສາຈີນ","Chinese"]]},
+  {t:"sel", id:"narrator", lo:"ສຽງຜູ້ບັນຍາຍ", en:"Narrator voice", opts:[["ຜູ້ຊາຍ ທຸ້ມ ເລິກ ຊົງພະລັງ","Male, deep and powerful"],["ຜູ້ຍິງ ນຸ່ມນວນ ອົບອຸ່ນ","Female, soft and warm"],["ຜູ້ຍິງ ສົດໃສ","Female, bright"],["ຜູ້ຊາຍໜຸ່ມ ສົດໃສ","Young male, upbeat"],["ຜູ້ເຖົ້າເລົ່ານິທານ","Elderly storyteller"]]},
+  {t:"sel", id:"dstyle", lo:"ຮູບແບບບົດເວົ້າ", en:"Dialogue style", opts:[["ເວົ້າເປັນທຳມະຊາດ ກະທັດຮັດ","Natural and concise"],["ສຳນວນລະຄອນ ອາລົມເຂັ້ມ","Dramatic and emotional"],["ພາສາປາກ ມ່ວນ ທັນສະໄໝ","Casual, modern and fun"],["ພາສາບູຮານ / ທາງການ","Old-fashioned / formal"]]},
+  {t:"sel", id:"music", lo:"ດົນຕີປະກອບ", en:"Music", opts:[["ເລືອກຕາມອາລົມແຕ່ລະສາກ","Matched to each scene's mood"],["ດົນຕີພື້ນເມືອງລາວ (ແຄນ, ພິນ, ລະນາດ)","Lao traditional (khaen, phin, ranat)"],["ອໍເຄສຕຣາ ພາບຍົນ","Cinematic orchestral"],["ອາຄູສະຕິກ / lo-fi","Acoustic / lo-fi"],["ບໍ່ມີດົນຕີ","No music"]]},
+  {t:"sel", id:"sfx", lo:"ສຽງປະກອບ (SFX)", en:"Sound effects", opts:[["ສຽງສົມຈິງຕາມສິ່ງທີ່ເຫັນ","Realistic, matching what is on screen"],["ເນັ້ນສຽງບັນຍາກາດ","Emphasize ambience"],["ໜ້ອຍທີ່ສຸດ","Minimal"]]},
+  {t:"area", id:"audioExtra", lo:"ຂໍ້ກຳນົດສຽງເພີ່ມເຕີມ", en:"Extra audio notes", wide:1, ph:"ເຊັ່ນ ສຽງລາວຊັດເຈນ, ບໍ່ເວົ້າທັບກັນ, ຜູ້ບັນຍາຍຕ້ອງກົງກັບພາບ"}
+ ]},
+ {id:"edit", lo:"ຕັດຕໍ່", en:"Editing", fields:[
+  {t:"sel", id:"app", lo:"ແອັບຕັດຕໍ່", en:"Editing app", opts:[["CapCut","CapCut"],["VN Editor","VN Editor"],["InShot","InShot"],["Adobe Premiere Pro","Adobe Premiere Pro"],["DaVinci Resolve","DaVinci Resolve"]]},
+  {t:"sel", id:"trans", lo:"ຮູບແບບການຕໍ່ພາບ (transition)", en:"Transitions", opts:[["ຕັດຕໍ່ລຽບໆຕາມຈັງຫວະເລື່ອງ","Smooth cuts that follow the story's rhythm"],["ຕັດໄວ ກະຊັບ","Fast, punchy cuts"],["Fade ນຸ່ມນວນ","Soft fades"]]},
+  {t:"sel", id:"subs", lo:"ຊັບໄຕເຕີ້ນຕອນຕັດຕໍ່", en:"Subtitles in edit", opts:[["ບໍ່ໃສ່ຊັບໄຕເຕີ້ນ","No subtitles"],["ຊັບພາສາລາວ","Lao subtitles"],["ຊັບພາສາອັງກິດ","English subtitles"],["ຊັບລາວ + ອັງກິດ","Lao + English subtitles"]]},
+  {t:"sel", id:"export", lo:"ໄຟລ໌ສົ່ງອອກ", en:"Export format", opts:[["MP4 H.264","MP4 H.264"],["MP4 H.265 (HEVC)","MP4 H.265 (HEVC)"],["MOV ProRes","MOV ProRes"]]},
+  {t:"chk", id:"esteps", lo:"ຂັ້ນຕອນຕັດຕໍ່", en:"Editing steps", opts:[["ລຽງຄລິບຕາມລຳດັບ","arrange clips in order",1],["ປັບສີ","color grading",1],["ມິກສຽງ","audio mixing",1],["ດົນຕີ / SFX","music & SFX",1],["ໂລໂກ້ / ອິນໂທຣ","logo / intro",0],["ກວດຄວາມຕໍ່ເນື່ອງ","continuity check",1]]}
+ ]},
+ {id:"post", lo:"ໂພສ ແລະ ເຜີຍແຜ່", en:"Publishing", fields:[
+  {t:"sel", id:"pplat", lo:"ແພລດຟອມໂພສ", en:"Post to", opts:[["TikTok","TikTok"],["Facebook Reels","Facebook Reels"],["YouTube Shorts","YouTube Shorts"],["Instagram Reels","Instagram Reels"],["YouTube (ແນວນອນ)","YouTube (horizontal)"],["ທຸກແພລດຟອມ","All platforms"]]},
+  {t:"sel", id:"cover", lo:"ຮູບແບບໜ້າປົກ", en:"Cover style", opts:[["ພາບຕົວລະຄອນເດັ່ນ + ຊື່ເລື່ອງ","Lead character + title"],["ສາກທີ່ຕື່ນເຕັ້ນທີ່ສຸດ + ຂໍ້ຄວາມຊວນສົງໄສ","Most dramatic moment + curiosity hook"],["ໜ້າປົກມິນິມອລ","Minimal cover"]]},
+  {t:"sel", id:"cta", lo:"ຄຳຊວນໃຫ້ມີສ່ວນຮ່ວມ", en:"Call to action", opts:[["ຖາມຄວາມຄິດເຫັນຜູ້ຊົມ","Ask viewers for their opinion"],["ຊວນກົດຕິດຕາມເພື່ອເບິ່ງຕອນຕໍ່ໄປ","Ask viewers to follow for the next episode"],["ຊວນແຊຣ໌ໃຫ້ໝູ່","Ask viewers to share with friends"],["ບໍ່ໃສ່","None"]]},
+  {t:"txt", id:"tags", lo:"ແຮຊແທັກ", en:"Hashtags", d:["#ລະຄອນAI #ໜັງສັ້ນ #ຊີຣີສ໌AI","#ລະຄອນAI #ໜັງສັ້ນ #ຊີຣີສ໌AI"]},
+  {t:"area", id:"postExtra", lo:"ຊື່ເພຈ / ຄຳອະທິບາຍ / ຂໍ້ກຳນົດໂພສ", en:"Page name / description / posting notes", wide:1, ph:"ເຊັ່ນ ຊື່ເພຈ, ຄຳອະທິບາຍຄລິບ, ກຸ່ມຜູ້ຊົມ ຫຼື ກຳນົດເວລາລົງຄລິບ"}
+ ]}
+];
+
+var F = {};
+SECTIONS.forEach(function(s){ s.fields.forEach(function(f){ F[f.id] = f; }); });
+var KEY = "ai-lakhon-studio-lo-v1";
+var state = {};
+var $ = function(id){ return document.getElementById(id); };
+
+function defaults(){
+  var st = {lang:"lo"};
+  Object.keys(F).forEach(function(id){
+    var f = F[id];
+    if (f.t === "sel") st[id] = f.d || 0;
+    else if (f.t === "chk") st[id] = f.opts.map(function(o){ return !!o[2]; });
+    else st[id] = f.d ? f.d[0] : "";
+  });
+  return st;
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+
+function fieldHTML(f){
+  var id = "f_" + f.id;
+  if (f.t === "sel"){
+    return '<div class="field" data-f="'+f.id+'"><label for="'+id+'">'+esc(f.lo)+'</label><div class="sel"><select id="'+id+'">' +
+      f.opts.map(function(o,i){ return '<option value="'+i+'">'+esc(o[0])+'</option>'; }).join("") +
+      '</select></div><p class="hint" id="h_'+f.id+'" hidden></p></div>';
+  }
+  if (f.t === "txt"){
+    return '<div class="field" data-f="'+f.id+'"><label for="'+id+'">'+esc(f.lo)+'</label><input type="text" id="'+id+'" placeholder="'+esc(f.ph||"")+'"></div>';
+  }
+  if (f.t === "area"){
+    return '<div class="field'+(f.wide?' wide':'')+'" data-f="'+f.id+'"><label for="'+id+'">'+esc(f.lo)+'</label><textarea id="'+id+'" rows="3" placeholder="'+esc(f.ph||"")+'"></textarea></div>';
+  }
+  return '<fieldset class="field wide" data-f="'+f.id+'"><legend>'+esc(f.lo)+'</legend><div class="chips">' +
+    f.opts.map(function(o,i){ return '<label class="chip"><input type="checkbox" id="'+id+'_'+i+'"><span>'+esc(o[0])+'</span></label>'; }).join("") +
+    '</div><p class="hint" id="h_'+f.id+'" hidden></p></fieldset>';
+}
+
+function render(){
+  $("steps").innerHTML = SECTIONS.map(function(s,i){
+    return '<a href="#s-'+s.id+'"><span class="n">'+(i+1)+'</span>'+esc(s.lo)+'</a>';
+  }).join("");
+  $("sections").innerHTML = SECTIONS.map(function(s,i){
+    return '<section class="card" id="s-'+s.id+'" aria-labelledby="t-'+s.id+'"><h2 id="t-'+s.id+'"><span class="num">'+(i+1)+'</span>'+esc(s.lo)+'</h2><div class="grid">' +
+      s.fields.map(fieldHTML).join("") + '</div>' + (s.id === "scene" ? '<p class="calc" id="calc"></p>' : '') + '</section>';
+  }).join("");
+  $("sections").style.display = "flex";
+  $("sections").style.flexDirection = "column";
+  $("sections").style.gap = "16px";
+}
+
+function toDOM(){
+  Object.keys(F).forEach(function(id){
+    var f = F[id], el = $("f_"+id);
+    if (f.t === "chk") f.opts.forEach(function(o,i){ $("f_"+id+"_"+i).checked = !!state[id][i]; });
+    else el.value = state[id];
+  });
+  document.querySelectorAll(".seg button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)); });
+}
+
+function fromDOM(){
+  Object.keys(F).forEach(function(id){
+    var f = F[id];
+    if (f.t === "sel") state[id] = parseInt($("f_"+id).value, 10) || 0;
+    else if (f.t === "chk") state[id] = f.opts.map(function(o,i){ return $("f_"+id+"_"+i).checked; });
+    else state[id] = $("f_"+id).value;
+  });
+}
+
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+function load(){
+  var st = defaults();
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw){
+      var saved = JSON.parse(raw);
+      Object.keys(st).forEach(function(k){
+        if (!(k in saved)) return;
+        var f = F[k];
+        if (k === "lang") { if (saved.lang === "en" || saved.lang === "lo") st.lang = saved.lang; }
+        else if (f.t === "sel") { var n = saved[k]; if (typeof n === "number" && n >= 0 && n < f.opts.length) st[k] = n; }
+        else if (f.t === "chk") { if (Array.isArray(saved[k]) && saved[k].length === f.opts.length) st[k] = saved[k].map(Boolean); }
+        else if (typeof saved[k] === "string") st[k] = saved[k];
+      });
+    }
+  } catch(e){}
+  return st;
+}
+
+var narratorOff = function(){ return state.vstyle === 0 || state.vstyle === 3; };
+var keepOff = function(){ return state.lock === 2; };
+var num = function(id){ return F[id].opts[state[id]][2]; };
+function clips(){ return Math.ceil(num("total") / num("clip")); }
+
+function sync(){
+  var nOff = narratorOff();
+  $("f_narrator").disabled = nOff;
+  document.querySelector('[data-f="narrator"]').classList.toggle("off", nOff);
+  var h = $("h_narrator");
+  h.hidden = !nOff;
+  h.textContent = nOff ? "ປິດໄວ້ ເພາະຮູບແບບສຽງບໍ່ມີຜູ້ບັນຍາຍ" : "";
+
+  var kOff = keepOff();
+  F.keep.opts.forEach(function(o,i){ $("f_keep_"+i).disabled = kOff; });
+  var hk = $("h_keep");
+  hk.hidden = !kOff;
+  hk.textContent = kOff ? "ປິດໄວ້ ເພາະເລືອກ \"ບໍ່ລັອກ\" ຕົວລະຄອນ" : "";
+
+  var n = clips(), eps = num("eps");
+  $("calc").innerHTML = "ຈະໄດ້ປະມານ <b>" + n + " ຄລິບ</b> ຕໍ່ຕອນ" + (eps > 1 ? " · ລວມ <b>" + (n*eps) + " ຄລິບ</b> ທັງໝົດ " + eps + " ຕອນ" : "") +
+    (n > 24 ? " · ຫຼາຍແທ້, ລອງເພີ່ມຄວາມຍາວຕໍ່ຄລິບ ຫຼື ຫຼຸດຄວາມຍາວຕໍ່ຕອນ" : "");
+}
+
+function build(){
+  var L = state.lang === "en";
+  var T = function(a,b){ return L ? b : a; };
+  var v = function(id){
+    var f = F[id], x = state[id];
+    if (f.t === "sel") return f.opts[x][L?1:0];
+    if (f.t === "chk") return f.opts.filter(function(o,i){ return x[i]; }).map(function(o){ return o[L?1:0]; }).join(", ");
+    var s = (x || "").trim();
+    if (f.d && s === f.d[0].trim()) s = f.d[L?1:0];
+    return s;
+  };
+  var skip = function(id){ return (id === "narrator" && narratorOff()) || (id === "keep" && keepOff()); };
+  var n = clips(), eps = num("eps"), per = num("clip");
+  var out = [];
+
+  out.push(T("# MASTER PROMPT · AI ລະຄອນ Studio", "# MASTER PROMPT · AI Drama Studio"));
+  out.push("");
+  out.push(T(
+    "ເຈົ້າຄືຜູ້ກຳກັບ ແລະ ນັກຂຽນບົດມືອາຊີບ ທີ່ຊ່ຽວຊານການຜະລິດລະຄອນດ້ວຍ AI. ຊ່ວຍຂ້ອຍວາງແຜນ ແລະ ຂຽນທຸກຢ່າງທີ່ຕ້ອງໃຊ້ ເພື່ອສ້າງລະຄອນເລື່ອງນີ້ໃຫ້ສຳເລັດ ໂດຍຍຶດຕາມຂໍ້ມູນລຸ່ມນີ້ຢ່າງເຄັ່ງຄັດ.",
+    "You are a professional director and screenwriter who specializes in AI-generated drama. Help me plan and write everything needed to produce this drama, following the brief below exactly."));
+  out.push("");
+  out.push(T("# ຂໍ້ມູນໂຄງການ", "# Project brief"));
+
+  SECTIONS.forEach(function(s,i){
+    out.push("");
+    out.push("## " + (i+1) + ". " + T(s.lo, s.en));
+    s.fields.forEach(function(f){
+      if (skip(f.id)) return;
+      var val = v(f.id);
+      if (!val){
+        if (f.empty) val = f.empty[L?1:0]; else return;
+      }
+      out.push("- " + T(f.lo, f.en) + ": " + val);
+    });
+    if (s.id === "scene"){
+      out.push("- " + T("ຈຳນວນຄລິບ", "Clip count") + ": " + T(
+        "ປະມານ " + n + " ຄລິບຕໍ່ຕອນ" + (eps > 1 ? " (ລວມ " + (n*eps) + " ຄລິບ)" : ""),
+        "about " + n + " clips per episode" + (eps > 1 ? " (" + (n*eps) + " in total)" : "")));
+    }
+  });
+
+  var hasSpeech = state.vstyle !== 3;
+  var hasNarr = state.vstyle === 1 || state.vstyle === 2;
+  var noImages = state.iref === 2;
+  var lang = v("vlang");
+
+  out.push("");
+  out.push(T("# ສິ່ງທີ່ຕ້ອງສົ່ງມອບ (ຕອບຕາມລຳດັບນີ້)", "# Deliverables (answer in this order)"));
+  var d = [
+    T("ພລັອດ ແລະ ໂຄງເລື່ອງ: logline 1 ປະໂຫຍກ, ເລື່ອງຫຍໍ້ ແລະ ໂຄງສ້າງ ເປີດ–ກາງ–ຈົບ" + (eps > 1 ? " ແຍກຕາມຕອນ" : ""),
+      "Plot & structure: a one-sentence logline, a synopsis and a beginning–middle–end structure" + (eps > 1 ? ", broken down per episode" : "")),
+    T("Character sheet ຂອງຕົວລະຄອນຫຼັກ " + num("chars") + " ຄົນ: ຊື່, ອາຍຸ, ບຸກຄະລິກ, ໜ້າຕາ ຊົງຜົມ ສີຜິວ ຮູບຮ່າງແບບລະອຽດ, ເສື້ອຜ້າປະຈຳຕົວ ແລະ ລັກສະນະສຽງ",
+      "Character sheet for " + num("chars") + " main characters: name, age, personality, detailed face, hair, skin tone and build, signature outfit and voice"),
+    T("ຕາຕະລາງແບ່ງສາກ: " + n + " ຄລິບຕໍ່ຕອນ, ຄລິບລະ " + per + " ວິນາທີ (ເລກຄລິບ, ເວລາ, ສະຖານທີ່, ເຫດການ, ອາລົມ)",
+      "Scene breakdown table: " + n + " clips per episode, " + per + " seconds each (clip number, timecode, location, action, emotion)"),
+    T("Video prompt ທຸກຄລິບ ສຳລັບ " + v("vplat") + ": ລວມການເຄື່ອນກ້ອງ, ແສງ, ການສະແດງ" + (hasSpeech ? ", ບົດເວົ້າ" : "") + " ແລະ ສຽງໃນຄລິບນັ້ນ",
+      "A video prompt for every clip, written for " + v("vplat") + ": camera movement, lighting, acting" + (hasSpeech ? ", dialogue" : "") + " and sound for that clip"),
+    noImages
+      ? T("ພາບອ້າງອີງຕົວລະຄອນ: image prompt 1 ອັນຕໍ່ຕົວລະຄອນ ສຳລັບ " + v("itool") + " (ບໍ່ຕ້ອງເຮັດພາບລາຍຊີນ)",
+          "Character reference images: one image prompt per character for " + v("itool") + " (no per-scene images needed)")
+      : T("Image prompt ຂອງແຕ່ລະຊີນ ສຳລັບ " + v("itool") + " (" + v("iref") + ") ພ້ອມ negative prompt",
+          "An image prompt for each scene for " + v("itool") + " (" + v("iref") + "), with the negative prompt"),
+    T((hasSpeech ? "ບົດເວົ້າຄົບທຸກຄລິບ" + (hasNarr ? " ແລະ ບົດບັນຍາຍ" : "") + ", " : "") + "ດົນຕີ ແລະ ສຽງປະກອບຂອງແຕ່ລະສາກ",
+      (hasSpeech ? "Full dialogue for every clip" + (hasNarr ? " plus narration" : "") + ", " : "") + "music and sound effects for each scene"),
+    T("ຄູ່ມືຕັດຕໍ່ໃນ " + v("app") + ": ລຳດັບຄລິບ, transition, ຂັ້ນຕອນທີ່ເລືອກ ແລະ ການຕັ້ງຄ່າສົ່ງອອກ " + v("export"),
+      "Editing guide for " + v("app") + ": clip order, transitions, the selected steps and export settings for " + v("export")),
+    T("ຊຸດໂພສສຳລັບ " + v("pplat") + ": ຄຳບັນຍາຍ, hashtag, ໄອເດຍໜ້າປົກ, ຄຳຊວນມີສ່ວນຮ່ວມ ແລະ ເວລາໂພສທີ່ແນະນຳ",
+      "Post package for " + v("pplat") + ": caption, hashtags, cover idea, call to action and recommended posting time")
+  ];
+  d.forEach(function(x,i){ out.push((i+1) + ". " + x); });
+
+  out.push("");
+  out.push(T("# ກົດທີ່ຕ້ອງເຮັດຕາມ", "# Rules"));
+  var r = [];
+  if (!keepOff()){
+    var keep = v("keep");
+    r.push(T("ຕົວລະຄອນທຸກຄົນຕ້ອງຄືເດີມທຸກສາກ" + (keep ? ": ຮັກສາ " + keep + " ໃຫ້ກົງກັບ character sheet" : ""),
+             "Every character must look the same in every scene" + (keep ? ": keep " + keep + " identical to the character sheet" : "")));
+    r.push(T("ໃນທຸກ video prompt ແລະ image prompt ໃຫ້ຂຽນລາຍລະອຽດຮູບລັກສະນະຂອງຕົວລະຄອນຄົບຖ້ວນຊ້ຳທຸກຄັ້ງ, ຫ້າມຂຽນຫຍໍ້ວ່າ \"ຕົວລະຄອນຄົນເກົ່າ\"",
+             "Repeat each character's full appearance description in every video and image prompt. Never shorten it to \"the same character\"."));
+  }
+  r.push(hasSpeech
+    ? T("ຂຽນ video prompt ແລະ image prompt ເປັນພາສາອັງກິດ (ເຄື່ອງມື AI ເຂົ້າໃຈດີທີ່ສຸດ), ແຕ່ບົດເວົ້າຂອງຕົວລະຄອນໃຫ້ເປັນ" + lang,
+        "Write video and image prompts in English, but keep all spoken lines in " + lang + ".")
+    : T("ຂຽນ video prompt ແລະ image prompt ເປັນພາສາອັງກິດ (ເຄື່ອງມື AI ເຂົ້າໃຈດີທີ່ສຸດ)", "Write video and image prompts in English."));
+  r.push(T("ທຸກຄລິບຍາວບໍ່ເກີນ " + per + " ວິນາທີ, ອັດຕາສ່ວນ " + v("ratio") + ", ສາກເຊື່ອມຕໍ່ກັນລຽບໆ ບໍ່ກະໂດດສະຖານທີ່ໂດຍບໍ່ມີເຫດຜົນ",
+           "Each clip is at most " + per + " seconds, " + v("ratio") + ", and scenes flow smoothly without unexplained jumps in location."));
+  r.push(T("ເນື້ອຫາຕ້ອງເໝາະສົມກັບລະດັບ: " + v("rating"), "Content must fit the rating: " + v("rating") + "."));
+  r.push(T("ຖ້າຂໍ້ມູນໃດບໍ່ຊັດເຈນ ໃຫ້ເລືອກທາງທີ່ດີທີ່ສຸດເອງ ແລ້ວສະຫຼຸບສິ່ງທີ່ເລືອກໄວ້ທ້າຍຄຳຕອບ, ບໍ່ຕ້ອງຖາມກັບ",
+           "If anything is unclear, make the best choice yourself and list your assumptions at the end instead of asking."));
+  r.push(T("ຖ້າຄຳຕອບຍາວເກີນໄປ ໃຫ້ຢຸດຢູ່ຈຸດທີ່ເໝາະສົມ" + (eps > 1 ? " (ເຊັ່ນ ຈົບຕອນທີ 1 ຄົບທຸກຂັ້ນຕອນ)" : "") + " ແລ້ວລໍຖ້າຂ້ອຍພິມ \"ຕໍ່\"",
+           "If the answer gets too long, stop at a sensible point" + (eps > 1 ? " (for example after finishing episode 1 in full)" : "") + " and wait for me to type \"continue\"."));
+  r.push(T("ຕອບເປັນພາສາລາວ, ຍົກເວັ້ນ video prompt ແລະ image prompt", "Respond in English."));
+  r.forEach(function(x){ out.push("- " + x); });
+
+  return out.join("\n");
+}
+
+function update(){
+  sync();
+  var text = build();
+  $("output").value = text;
+  $("meta").textContent = text.length.toLocaleString("en-US") + " ຕົວອັກສອນ · " + text.split("\n").length + " ແຖວ";
+  save();
+}
+
+var toastTimer;
+function toast(msg){
+  var t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+}
+
+function flash(){
+  var o = $("output");
+  o.classList.add("flash");
+  setTimeout(function(){ o.classList.remove("flash"); }, 900);
+}
+
+// ---- wire up ----
+render();
+state = load();
+toDOM();
+update();
+
+$("form").addEventListener("input", function(){ fromDOM(); update(); });
+$("form").addEventListener("change", function(){ fromDOM(); update(); });
+$("form").addEventListener("submit", function(e){ e.preventDefault(); });
+
+document.querySelectorAll(".seg button").forEach(function(b){
+  b.addEventListener("click", function(){
+    state.lang = b.dataset.lang;
+    toDOM(); update(); flash();
+  });
+});
+
+$("btnBuild").addEventListener("click", function(){
+  fromDOM(); update();
+  if (window.matchMedia("(max-width: 980px)").matches) $("panel").scrollIntoView({block:"start"});
+  flash();
+  toast("ສ້າງ Master Prompt ແລ້ວ");
+});
+
+var resetArmed = false, resetTimer;
+$("btnReset").addEventListener("click", function(){
+  var b = $("btnReset");
+  if (!resetArmed){
+    resetArmed = true;
+    b.textContent = "ກົດອີກຄັ້ງເພື່ອຢືນຢັນ";
+    b.classList.add("warn");
+    resetTimer = setTimeout(function(){ resetArmed = false; b.textContent = "ລ້າງຄ່າເລີ່ມໃໝ່"; b.classList.remove("warn"); }, 3500);
+    return;
+  }
+  clearTimeout(resetTimer);
+  resetArmed = false;
+  b.textContent = "ລ້າງຄ່າເລີ່ມໃໝ່";
+  b.classList.remove("warn");
+  var lang = state.lang;
+  state = defaults();
+  state.lang = lang;
+  toDOM(); update();
+  toast("ລ້າງຄ່າກັບເປັນຄ່າເລີ່ມຕົ້ນແລ້ວ");
+});
+
+$("btnCopy").addEventListener("click", function(){
+  var text = $("output").value;
+  var fallback = function(){
+    var o = $("output");
+    o.focus(); o.select();
+    toast("ເລືອກຂໍ້ຄວາມໃຫ້ແລ້ວ, ກົດ Ctrl+C (ຫຼື ກົດຄ້າງ ແລ້ວເລືອກ Copy)");
+  };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ toast("ຄັດລອກແລ້ວ, ນຳໄປວາງໃນ AI ໄດ້ເລີຍ"); }, fallback);
+    } else fallback();
+  } catch(e){ fallback(); }
+});
+
+function fileName(){
+  var t = (state.title || "").trim().replace(/[\\\/:*?"<>|]+/g, "").slice(0, 60);
+  return (t ? "master-prompt-" + t : "master-prompt") + ".txt";
+}
+var dlApi;
+if (window.claude && typeof window.claude.use === "function"){
+  window.claude.use("downloads").then(function(d){ dlApi = d; if (!d) $("btnDl").hidden = true; }, function(){ $("btnDl").hidden = true; });
+}
+$("btnDl").addEventListener("click", function(){
+  var text = $("output").value;
+  if (window.claude && typeof window.claude.use === "function"){
+    if (!dlApi){ toast("ດາວໂຫຼດບໍ່ໄດ້ໃນໜ້ານີ້, ກະລຸນາໃຊ້ປຸ່ມຄັດລອກ"); return; }
+    dlApi.save({filename: fileName(), data: text}).then(function(){ toast("ບັນທຶກໄຟລ໌ແລ້ວ"); }, function(e){
+      var c = e && e.code;
+      if (c === "declined") toast("ຍົກເລີກການດາວໂຫຼດແລ້ວ");
+      else if (c === "rate_limited") toast("ລໍຖ້າບຶດໜຶ່ງ ແລ້ວລອງໃໝ່");
+      else toast("ດາວໂຫຼດບໍ່ສຳເລັດ, ກະລຸນາໃຊ້ປຸ່ມຄັດລອກ");
+    });
+    return;
+  }
+  // standalone hosting: plain browser download
+  try {
+    var url = URL.createObjectURL(new Blob([text], {type:"text/plain;charset=utf-8"}));
+    var a = document.createElement("a");
+    a.href = url; a.download = fileName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast("ດາວໂຫຼດແລ້ວ");
+  } catch(e){ toast("ດາວໂຫຼດບໍ່ສຳເລັດ, ກະລຸນາໃຊ້ປຸ່ມຄັດລອກ"); }
+});
+})();
+</script>
+
+</body>
+</html>
